@@ -12,10 +12,12 @@ import numpy as np
 import os
 import imutils
 
+# The dimensions the images will be scaled to
 global imSize
 imSize = 64
 
 def displayGrid(images, preds, actual):
+    """ Displays a grid of several images with predicted and actual labels """
     fig = plt.figure(figsize=(8.,3.))
     grid = ImageGrid(fig, 111,
                      nrows_ncols=(1,4),
@@ -31,27 +33,17 @@ def displayGrid(images, preds, actual):
         ax.imshow(im)
         i += 1
 
-def centerContour(img):
-    #blur = 5
-    #blurred = cv2.GaussianBlur(img, (0, 0), 0)
-    edge = cv2.Canny(img, 0, 100)
-    cnts = cv2.findContours(edge.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    cnts = imutils.grab_contours(cnts)
-    cv2.drawContours(img, cnts, -1, (255, 0, 0), 10)
-    cv2.imshow("sample", img)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-    return img
-
 def getFlattened(imagepath):
+    """ Flattens and grayscales the image """
     img = cv2.imread(imagepath, cv2.IMREAD_GRAYSCALE)
     dim = (imSize, imSize)
-    #updated = centerContour(img)
     resized = cv2.resize(img, dim, interpolation = cv2.INTER_AREA)
     flattened = np.reshape(resized, imSize*imSize)
     return flattened
 
 def load_dataset(directory):
+    """ Loops through all of the folders and returns the images with labels 
+    based on the folder they are in """
     data = {"labels": [],
             "images": []}
 
@@ -67,34 +59,45 @@ def load_dataset(directory):
 
     return data["labels"], data["images"]
 
-directory = "dataset"
-labels, images = load_dataset(directory)
+def main():
+    # Gets the dataset
+    directory = "dataset"
+    labels, images = load_dataset(directory)
 
-trainX, testX, trainY,testY = train_test_split(images, labels, test_size = 0.2, shuffle = True)
+    # Splits the dataset
+    trainX, testX, trainY,testY = train_test_split(images, labels, test_size = 0.2, shuffle = True)
 
-classifier = LogisticRegression(max_iter = 100)
-classifier.fit(trainX, trainY)
-print(classifier)
-train_preds = classifier.predict(trainX)
-test_preds = classifier.predict(testX)
+    # Defines and fits the classifier
+    classifier = LogisticRegression(max_iter = 100)
+    classifier.fit(trainX, trainY)
 
-correct = 0
-incorrect = 0
-for pred, gt in zip(test_preds, testY):
-    if pred == gt: correct += 1
-    else: incorrect += 1
-print("Test Accuracy:")
-print(f"Correct: {correct}, Incorrect: {incorrect}, % Correct: {correct/(correct + incorrect): 5.2}")
+    # Gets the test and train predictions
+    train_preds = classifier.predict(trainX)
+    test_preds = classifier.predict(testX)
 
-correct = 0
-incorrect = 0
-for pred, gt in zip(train_preds, trainY):
-    if pred == gt: correct += 1
-    else: incorrect += 1
-print("\nTrain Accuracy:")
-print(f"Correct: {correct}, Incorrect: {incorrect}, % Correct: {correct/(correct + incorrect): 5.2}")
+    # Displays the train accuracy
+    correct = 0
+    incorrect = 0
+    for pred, gt in zip(train_preds, trainY):
+        if pred == gt: correct += 1
+        else: incorrect += 1
+    print("\nTrain Accuracy:")
+    print(f"Correct: {correct}, Incorrect: {incorrect}, % Correct: {correct/(correct + incorrect): 5.2}")
 
-displayGrid(testX, test_preds, testY)
+    # Displays the test accuracy
+    correct = 0
+    incorrect = 0
+    for pred, gt in zip(test_preds, testY):
+        if pred == gt: correct += 1
+        else: incorrect += 1
+    print("\nTest Accuracy:")
+    print(f"Correct: {correct}, Incorrect: {incorrect}, % Correct: {correct/(correct + incorrect): 5.2}")
 
-plot_confusion_matrix(classifier, testX, testY)
-plt.show()
+    # Displays several images with predicted and actual labels
+    displayGrid(testX, test_preds, testY)
+
+    # Plots the confusion matrix
+    plot_confusion_matrix(classifier, testX, testY)
+    plt.show()
+
+main()
